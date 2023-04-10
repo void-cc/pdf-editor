@@ -35,13 +35,13 @@ class PDFMiner:
         return metadata, numPages
     
     # the function for getting the page
-    def get_page(self, page_num):
+    def get_page(self, page_num, scale=1):
         # loading the page
         page = self.pdf.load_page(page_num)
         # checking if zoom is True
         if self.zoom:
             # creating a Matrix whose zoom factor is self.zoom
-            mat = fitz.Matrix(self.zoom, self.zoom)
+            mat = fitz.Matrix((self.zoom)/ scale, (self.zoom)/ scale)
             # gets the image of the page
             pix = page.get_pixmap(matrix=mat)
         # returns the image of the page  
@@ -51,7 +51,8 @@ class PDFMiner:
         px1 = fitz.Pixmap(pix, 0) if pix.alpha else pix
         # converting the image to bytes
         imgdata = px1.tobytes("ppm")
-        # returning the image data
+        scale = 0.5
+        # returning the image d aata
         return PhotoImage(data=imgdata)
     
     
@@ -70,3 +71,39 @@ class PDFMiner:
         filename = self.get_metadata()[0]['title']
         
         return filename
+    
+    def save_file(self, name):
+        # saving the file
+        self.pdf.save(self.filepath, garbage=4, deflate=True, clean=True)
+
+class PDFOvervieuwer:
+    def __init__(self, filepath):
+        self.filepath = filepath
+        self.pdf = fitz.open(self.filepath)
+        self.first_page = self.pdf.load_page(0)
+        self.width, self.height = self.first_page.rect.width, self.first_page.rect.height
+        zoomdict = {800: 0.3, 700: 0.2, 600: 0.3, 500: 0.3}
+        width = int(math.floor(self.width / 100.0) * 100)
+        self.zoom = zoomdict[width]
+
+
+    def pages(self, page_num):
+        page_num = int(page_num)
+        page = self.pdf.load_page(page_num)
+        if self.zoom:
+            mat = fitz.Matrix(self.zoom, self.zoom)
+            pix = page.get_pixmap(matrix=mat)
+        else:
+            pix = page.get_pixmap()
+        px1 = fitz.Pixmap(pix, 0) if pix.alpha else pix
+        imgdata = px1.tobytes("ppm")
+
+        return PhotoImage(data=imgdata)
+    
+    def get_metadata(self):
+        metadata = self.pdf.metadata
+        numPages = self.pdf.page_count
+        return metadata, numPages
+    
+    def get_total_pages(self):
+        return self.pdf.page_count
