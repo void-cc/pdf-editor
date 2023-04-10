@@ -7,7 +7,7 @@ from miner import PDFMiner
 from miner import PDFOvervieuwer
 from tkinter import PhotoImage
 import PyPDF2
-
+import ctypes
 
 class PDFViewer:
     def __init__(self, master):
@@ -30,8 +30,7 @@ class PDFViewer:
         self.master.bind('<Down>', self.next_page)
         self.master.bind('<Control-equal>', self.zoom_in)
         self.master.bind('<Control-minus>', self.zoom_out)
-
-
+        self.check_resize()
 
         # the menu
         self.menu = Menu(self.master)
@@ -67,6 +66,9 @@ class PDFViewer:
         self.zoomout_icon = PhotoImage(file = "zoomout2.png", width = 20, height = 20)
         self.open_icon = PhotoImage(file = "folder.png", width = 20, height = 20)
         self.save_icon = PhotoImage(file = "save2.png", width = 20, height = 20)
+        self.merge_icon = PhotoImage(file = "merge.png", width = 20, height = 20)
+        self.split_icon = PhotoImage(file = "split.png", width = 20, height = 20)
+
         self.zoomin_button = ttk.Button(self.toolbar_frame, image = self.zoomin_icon, command = self.zoom_in)
         self.zoomin_button.grid(row = 0, column = 2)
         self.zoomout_button = ttk.Button(self.toolbar_frame, image = self.zoomout_icon, command = self.zoom_out)
@@ -75,6 +77,11 @@ class PDFViewer:
         self.open_button.grid(row = 0, column = 0)
         self.save_button = ttk.Button(self.toolbar_frame, image = self.save_icon, command = self.save_file)
         self.save_button.grid(row = 0, column = 1)
+        self.merge_button = ttk.Button(self.toolbar_frame, image = self.merge_icon, command = self.merge_pdf)
+        self.merge_button.grid(row = 0, column = 4)
+        self.split_button = ttk.Button(self.toolbar_frame, image = self.split_icon, command = self.split_pdf)
+        self.split_button.grid(row = 0, column = 5)
+
         self.scrolly = Scrollbar(self.top_frame, orient = VERTICAL)
         self.scrolly.grid(row = 0, column = 1, sticky = (N, S))
         self.scrollx = Scrollbar(self.top_frame, orient = HORIZONTAL)
@@ -84,6 +91,8 @@ class PDFViewer:
         self.output.grid(row = 0, column = 0)
         self.scrolly.config(command = self.output.yview)
         self.scrollx.config(command = self.output.xview)
+        self.output.bind('<MouseWheel>', self.on_mousewheel)
+        self.output.bind('<Alt-MouseWheel>', self.ver_on_mousewheel)
 
         # the buttons
         self.uparrow_icon = PhotoImage(file='uparrow.png')
@@ -96,8 +105,7 @@ class PDFViewer:
         self.downbutton.grid(row=0, column=3, pady=8)
         self.page_label = ttk.Label(self.bottom_frame, text='page')
         self.page_label.grid(row=0, column=4, padx=5)
-        self.merge_button = ttk.Button(self.bottom_frame, text = "Merge PDF", command = self.merge_pdf)
-        self.merge_button.grid(row = 0, column = 5, padx = 5)
+
     
     def open_file(self, event=None, filepath=None):
         if filepath is None:
@@ -150,9 +158,7 @@ class PDFViewer:
         except:
             self.overvieuw_window.destroy()
             messagebox.showerror("Error", "No file is open")
-            
-
-        
+               
     # a function to merge pdf files
     def merge_pdf(self):
         self.merge_window = Toplevel(self.master)
@@ -164,9 +170,7 @@ class PDFViewer:
         self.merge_entry = ttk.Entry(self.merge_window)
         self.merge_entry.grid(row = 1, column = 0, padx = 5, pady = 5)
         self.merge_button = ttk.Button(self.merge_window, text = "Merge", command = self.merge)
-        self.merge_button.grid(row = 2, column = 0, padx = 5, pady = 5)
-
-           
+        self.merge_button.grid(row = 2, column = 0, padx = 5, pady = 5)         
 
     def next_page(self, event=None):
         if self.fileisopen:
@@ -289,7 +293,38 @@ class PDFViewer:
             scale = 1.2 ** self.zoom_level
             self.display_page(scale=scale)
 
-    
+    def resize(self, event=None):
+    # get the width and height of the window
+        w = self.master.winfo_width()
+        h = self.master.winfo_height()
+
+        # update the size of the canvas and scrollbar
+        self.top_frame.config(width=w, height=h-100)
+        self.output.config(width=w-20, height=h-150) 
+        self.scrollx.config(width=w-40)
+
+        # update the size of the toolbar
+        self.toolbar_frame.config(width=w, height=50)
+        self.save_button.place(x=10, y=10)
+        self.open_button.place(x=60, y=10)
+        self.zoomin_button.place(x=110, y=10)
+        self.zoomout_button.place(x=160, y=10)
+        self.merge_button.place(x=210, y=10)
+        self.split_button.place(x=260, y=10)
+
+    def check_resize(self):
+        self.master.bind('<Configure>', self.resize)
+
+        
+    def on_mousewheel(self, event):
+        # Scroll the canvas and output widget together
+        self.output.yview_scroll(-1 * (event.delta // 120), "units")
+
+    def ver_on_mousewheel(self, event):
+        # Scroll the canvas and output widget together
+        self.output.xview_scroll(-1 * (event.delta // 120), "units")
+
+ctypes.windll.shcore.SetProcessDpiAwareness(1)    
 root = Tk()
 app = PDFViewer(root)
 root.mainloop()
