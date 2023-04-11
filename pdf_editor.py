@@ -24,13 +24,7 @@ class PDFViewer:
         self.master.iconbitmap(self.master, "pdf.ico")
         
          # the bindings
-        self.master.bind('<Control-Shift-O>', self.open_file)
-        self.master.bind('<Control-o>', self.open_file)
-        self.master.bind('<Up>', self.previous_page)
-        self.master.bind('<Down>', self.next_page)
-        self.master.bind('<Control-equal>', self.zoom_in)
-        self.master.bind('<Control-minus>', self.zoom_out)
-        self.check_resize()
+        PDFSettings.bindings(self)
 
         # the menu
         self.menu = Menu(self.master)
@@ -86,7 +80,7 @@ class PDFViewer:
         self.scrolly.grid(row = 0, column = 1, sticky = (N, S))
         self.scrollx = Scrollbar(self.top_frame, orient = HORIZONTAL)
         self.scrollx.grid(row = 1, column = 0, sticky = (W, E))
-        self.output = Canvas(self.top_frame, bg='white', width = 560, height = 630)
+        self.output = Canvas(self.top_frame, bg='gray', width = 560, height = 630)
         self.output.configure(yscrollcommand = self.scrolly.set, xscrollcommand = self.scrollx.set)
         self.output.grid(row = 0, column = 0)
         self.scrolly.config(command = self.output.yview)
@@ -106,26 +100,54 @@ class PDFViewer:
         self.page_label = ttk.Label(self.bottom_frame, text='page')
         self.page_label.grid(row=0, column=4, padx=5)
 
-    
-    def open_file(self, event=None, filepath=None):
-        if filepath is None:
-            filepath = fd.askopenfilename(title='Select a PDF file', filetypes=(('PDF', '*.pdf'), ))
-
-        if filepath:
-            self.path = filepath
-            filename = os.path.basename(self.path)
-            self.miner = PDFMiner(self.path)
-            self.over = PDFOvervieuwer(self.path)
-            data, numPages = self.miner.get_metadata()
-            self.current_page = int(0)
-            if numPages:
-                self.name = data.get('title', filename[:-4])
-                self.author = data.get('author', None)
-                self.numPages = numPages
-                self.fileisopen = True
+    def next_page(self, event=None):
+        if self.fileisopen:
+            if self.current_page <= self.numPages - 1:
+                self.current_page += 1
                 self.display_page()
-                self.master.title(self.name)
 
+    def previous_page(self, event=None):
+        if self.fileisopen:
+            if self.current_page > 0:
+                self.current_page -= 1
+                self.display_page()
+
+    def display_page(self, scale=1):
+        if 0 <= self.current_page < self.numPages: # type: ignore
+            self.img_file = self.miner.get_page(self.current_page, scale=scale)
+            self.output.create_image(0, 0, anchor='nw', image=self.img_file)
+            self.stringified_current_page = self.current_page + 1 # type: ignore
+            self.page_label['text'] = str(self.stringified_current_page) + ' of ' + str(self.numPages)
+            region = self.output.bbox(ALL)
+            self.output.configure(scrollregion=region)
+
+    def zoom_in(self, event=None):
+        if self.fileisopen:
+            self.zoom_level -= 1
+            scale = 1.2 ** self.zoom_level
+            self.display_page(scale=scale)
+
+    def zoom_out(self, event=None):
+        if self.fileisopen:
+            self.zoom_level += 1
+            scale = 1.2 ** self.zoom_level
+            self.display_page(scale=scale)
+
+    def zoom_reset(self, event=None):
+        if self.fileisopen:
+            self.zoom_level = 0
+            scale = 1.2 ** self.zoom_level
+            self.display_page(scale=scale)
+
+    def on_mousewheel(self, event):
+        # Scroll the canvas and output widget together
+        self.output.yview_scroll(-1 * (event.delta // 120), "units")
+
+    def ver_on_mousewheel(self, event):
+        # Scroll the canvas and output widget together
+        self.output.xview_scroll(-1 * (event.delta // 120), "units")
+
+    
     # a overvieuw that you can see 8 pages at the same time
     def overvieuw(self):
         self.overvieuw_window = Toplevel(self.master)
@@ -139,6 +161,7 @@ class PDFViewer:
         self.overvieuw_output = Canvas(self.overvieuw_frame, bg='white', width = 1150, height = 730)
         self.overvieuw_output.grid(row = 0, column = 0)
         try:
+            self.over = PDFOvervieuwer(self.path)
             totalpages = int(self.over.get_total_pages())
             self.img_file_overvieuw = []
 
@@ -158,7 +181,7 @@ class PDFViewer:
         except:
             self.overvieuw_window.destroy()
             messagebox.showerror("Error", "No file is open")
-               
+    
     # a function to merge pdf files
     def merge_pdf(self):
         self.merge_window = Toplevel(self.master)
@@ -172,34 +195,7 @@ class PDFViewer:
         self.merge_button = ttk.Button(self.merge_window, text = "Merge", command = self.merge)
         self.merge_button.grid(row = 2, column = 0, padx = 5, pady = 5)         
 
-    def next_page(self, event=None):
-        if self.fileisopen:
-            if self.current_page <= self.numPages - 1:
-                self.current_page += 1
-                self.display_page()
-
-    def previous_page(self, event=None):
-        if self.fileisopen:
-            if self.current_page > 0:
-                self.current_page -= 1
-                self.display_page()
-
-    def merge(self):
-        self.merge_name = self.merge_entry.get()
-        if self.merge_name == "":
-            messagebox.showerror("Error", "Please enter a name for the merged file")
-        else:
-            merger = PyPDF2.PdfMerger(strict=True)
-            files = fd.askopenfilenames(title = "Select PDF files", initialdir = os.getcwd(), filetypes = (("PDF", "*.pdf"), ))
-            if files:
-                for file in files:
-                    merger.append(file)
-                merger.write(self.merge_name + ".pdf")
-                merger.close()
-                messagebox.showinfo("Success", "The PDF files have been merged successfully")
-                self.merge_window.destroy()
-                self.open_file(filepath=(self.merge_name + ".pdf"))
-
+    #a function to split pdf files
     def split_pdf(self):
         self.split_window = Toplevel(self.master)
         self.split_window.title("Split PDF")
@@ -224,7 +220,73 @@ class PDFViewer:
         # split the upperhalf or the lowerhalf of the pdf file
         self.split_upper = ttk.Button(self.split_window, text = "Split", command = self.split)
         self.split_upper.grid(row = 6, column = 0, padx = 5, pady = 5)
-        
+
+    def resize(self, event=None):
+        PDFSettings.resize(self, event)
+
+    
+
+    def open_file(self, event = None, file = None):
+        PDFSettings.open_file(self, event, file)
+    
+    def merge(self):
+        PDFSettings.merge(self)
+
+    def split(self):
+        PDFSettings.split(self)
+
+    def save_file(self):
+        PDFSettings.save_file(self)
+    
+
+class PDFSettings(PDFViewer):
+    def bindings(self):
+        self.master.bind('<Control-Shift-O>', self.open_file)
+        self.master.bind('<Control-o>', self.open_file)
+        self.master.bind('<Up>', self.previous_page)
+        self.master.bind('<Down>', self.next_page)
+        self.master.bind('<Control-equal>', self.zoom_in)
+        self.master.bind('<Control-minus>', self.zoom_out)
+        self.master.bind('<Control-0>', self.zoom_reset)
+        self.master.bind('<Control-s>', self.save_file)
+        self.master.bind('<Configure>', self.resize)
+
+    
+    def open_file(self, event=None, filepath=None):
+        if filepath is None:
+            filepath = fd.askopenfilename(title='Select a PDF file', filetypes=(('PDF', '*.pdf'), ))
+
+        if filepath:
+            self.path = filepath
+            filename = os.path.basename(self.path)
+            self.miner = PDFMiner(self.path)
+            self.over = PDFOvervieuwer(self.path)
+            data, numPages = self.miner.get_metadata()
+            self.current_page = int(0)
+            if numPages:
+                self.name = data.get('title', filename[:-4])
+                self.author = data.get('author', None)
+                self.numPages = numPages
+                self.fileisopen = True
+                self.display_page()
+                self.master.title(self.name)
+
+    def merge(self):
+        self.merge_name = self.merge_entry.get()
+        if self.merge_name == "":
+            messagebox.showerror("Error", "Please enter a name for the merged file")
+        else:
+            merger = PyPDF2.PdfMerger(strict=True)
+            files = fd.askopenfilenames(title = "Select PDF files", initialdir = os.getcwd(), filetypes = (("PDF", "*.pdf"), ))
+            if files:
+                for file in files:
+                    merger.append(file)
+                merger.write(self.merge_name + ".pdf")
+                merger.close()
+                messagebox.showinfo("Success", "The PDF files have been merged successfully")
+                self.merge_window.destroy()
+                self.open_file(filepath=(self.merge_name + ".pdf"))
+
     def split(self):
         self.split_name = self.split_entry.get()
         self.split_value = int(self.split_combobox.get())
@@ -266,35 +328,7 @@ class PDFViewer:
             self.miner.save_file(self.name)
             messagebox.showinfo("Success", "The file has been saved successfully")
 
-    def display_page(self, scale=1):
-        if 0 <= self.current_page < self.numPages: # type: ignore
-            self.img_file = self.miner.get_page(self.current_page, scale=scale)
-            self.output.create_image(0, 0, anchor='nw', image=self.img_file)
-            self.stringified_current_page = self.current_page + 1 # type: ignore
-            self.page_label['text'] = str(self.stringified_current_page) + ' of ' + str(self.numPages)
-            region = self.output.bbox(ALL)
-            self.output.configure(scrollregion=region)
-
-    def zoom_in(self, event=None):
-        if self.fileisopen:
-            self.zoom_level -= 1
-            scale = 1.2 ** self.zoom_level
-            self.display_page(scale=scale)
-
-    def zoom_out(self, event=None):
-        if self.fileisopen:
-            self.zoom_level += 1
-            scale = 1.2 ** self.zoom_level
-            self.display_page(scale=scale)
-
-    def zoom_reset(self, event=None):
-        if self.fileisopen:
-            self.zoom_level = 0
-            scale = 1.2 ** self.zoom_level
-            self.display_page(scale=scale)
-
     def resize(self, event=None):
-    # get the width and height of the window
         w = self.master.winfo_width()
         h = self.master.winfo_height()
 
@@ -311,18 +345,6 @@ class PDFViewer:
         self.zoomout_button.place(x=160, y=10)
         self.merge_button.place(x=210, y=10)
         self.split_button.place(x=260, y=10)
-
-    def check_resize(self):
-        self.master.bind('<Configure>', self.resize)
-
-        
-    def on_mousewheel(self, event):
-        # Scroll the canvas and output widget together
-        self.output.yview_scroll(-1 * (event.delta // 120), "units")
-
-    def ver_on_mousewheel(self, event):
-        # Scroll the canvas and output widget together
-        self.output.xview_scroll(-1 * (event.delta // 120), "units")
 
 ctypes.windll.shcore.SetProcessDpiAwareness(1)    
 root = Tk()
