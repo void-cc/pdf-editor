@@ -5,6 +5,7 @@ from tkinter import messagebox
 import os
 from miner import PDFMiner
 from miner import PDFOvervieuwer
+ 
 from tkinter import PhotoImage
 import PyPDF2
 import ctypes
@@ -50,12 +51,16 @@ class PDFViewer:
         self.toolbar_frame.grid(row = 0, column = 0)
         self.toolbar_frame.grid_propagate(False)
         
+
         self.top_frame = ttk.Frame(self.master, width = 580, height = 650)
         self.top_frame.grid(row = 1, column = 0)
         self.top_frame.grid_propagate(False)
         self.bottom_frame = ttk.Frame(self.master, width = 580, height = 50)
         self.bottom_frame.grid(row = 2, column = 0)
         self.bottom_frame.grid_propagate(False)
+        self.overvieuw_frame_main = ttk.Frame(self.top_frame, width=580, height=650)
+        self.overvieuw_frame_main.grid(row=0, column=0)
+        self.overvieuw_frame_main.grid_propagate(False)
         self.zoomin_icon = PhotoImage(file = "zoomin2.png", width = 20, height = 20)
         self.zoomout_icon = PhotoImage(file = "zoomout2.png", width = 20, height = 20)
         self.open_icon = PhotoImage(file = "folder.png", width = 20, height = 20)
@@ -150,16 +155,14 @@ class PDFViewer:
     
     # a overvieuw that you can see 8 pages at the same time
     def overvieuw(self):
-        self.overvieuw_window = Toplevel(self.master)
-        self.overvieuw_window.title("Overvieuw")
-        self.overvieuw_window.geometry("1200x750")
-        self.overvieuw_window.resizable(True, True)
-        self.overvieuw_window.iconbitmap(self.overvieuw_window, "pdf.ico")
-        self.overvieuw_frame = ttk.Frame(self.overvieuw_window, width = 1200, height = 800)
-        self.overvieuw_frame.grid(row = 0, column = 0)
-        self.overvieuw_frame.grid_propagate(False)
-        self.overvieuw_output = Canvas(self.overvieuw_frame, bg='white', width = 1150, height = 730)
-        self.overvieuw_output.grid(row = 0, column = 0)
+        if not self.fileisopen:
+            messagebox.showerror("Error", "No file is open")
+            return
+
+        self.output.destroy()
+        self.overvieuw_output = Canvas(self.overvieuw_frame_main, bg='white', width=1150, height=730)
+        self.overvieuw_output.grid(row=0, column=0)
+
         try:
             self.over = PDFOvervieuwer(self.path)
             totalpages = int(self.over.get_total_pages())
@@ -174,14 +177,12 @@ class PDFViewer:
             rangexcheckbox = [50, 250, 450, 650, 850, 50, 250, 450, 650, 850, 50, 250, 450, 650, 850]
 
             for i in range(totalpages if totalpages < 15 else 15):
-                self.overvieuw_output.create_image(rangex[i], rangey[i], image = self.img_file_overvieuw[i], anchor = NW)
-                #ttk checkbutton per page already checked
-                self.checkbox = ttk.Checkbutton(self.overvieuw_output, text = "page " + str(i + 1), onvalue = 1, offvalue = 0,  )
-                self.checkbox.place(x = rangexcheckbox[i], y = rangeycheckbox[i])
-        except:
-            self.overvieuw_window.destroy()
-            messagebox.showerror("Error", "No file is open")
-    
+                self.overvieuw_output.create_image(rangex[i], rangey[i], image=self.img_file_overvieuw[i], anchor=NW)
+                self.checkbox = ttk.Checkbutton(self.overvieuw_output, text="page " + str(i + 1), onvalue=1, offvalue=0,)
+                self.checkbox.place(x=rangexcheckbox[i], y=rangeycheckbox[i])
+        except Exception as e:
+            print(e)
+
     # a function to merge pdf files
     def merge_pdf(self):
         self.merge_window = Toplevel(self.master)
