@@ -23,7 +23,7 @@ class PDFEditor:
         self.master.geometry("580x730+540+180")
         self.overvieuwtoggle = False
         self.overvieuwopend = 0
-        self.master.iconbitmap("pdf.ico")
+        self.master.iconbitmap("img/pdf.ico")
          # the bindings
         PDFSettings.bindings(self)
 
@@ -61,12 +61,12 @@ class PDFEditor:
         self.overvieuw_frame_main = ttk.Frame(self.top_frame, width=580, height=650)
         self.overvieuw_frame_main.grid(row=0, column=0)
         self.overvieuw_frame_main.grid_propagate(False)
-        self.zoomin_icon = PhotoImage(file = "zoomin2.png", width = 20, height = 20)
-        self.zoomout_icon = PhotoImage(file = "zoomout2.png", width = 20, height = 20)
-        self.open_icon = PhotoImage(file = "folder.png", width = 20, height = 20)
-        self.save_icon = PhotoImage(file = "save2.png", width = 20, height = 20)
-        self.merge_icon = PhotoImage(file = "merge.png", width = 20, height = 20)
-        self.split_icon = PhotoImage(file = "split.png", width = 20, height = 20)
+        self.zoomin_icon = PhotoImage(file = "img/zoomin2.png", width = 20, height = 20)
+        self.zoomout_icon = PhotoImage(file = "img/zoomout2.png", width = 20, height = 20)
+        self.open_icon = PhotoImage(file = "img/folder.png", width = 20, height = 20)
+        self.save_icon = PhotoImage(file = "img/save2.png", width = 20, height = 20)
+        self.merge_icon = PhotoImage(file = "img/merge.png", width = 20, height = 20)
+        self.split_icon = PhotoImage(file = "img/split.png", width = 20, height = 20)
 
         self.zoomin_button = ttk.Button(self.toolbar_frame, image = self.zoomin_icon, command = self.zoom_in)
         self.zoomin_button.grid(row = 0, column = 2)
@@ -94,8 +94,8 @@ class PDFEditor:
         self.output.bind('<Alt-MouseWheel>', self.ver_on_mousewheel)
 
         # the buttons
-        self.uparrow_icon = PhotoImage(file='uparrow.png')
-        self.downarrow_icon = PhotoImage(file='downarrow.png')
+        self.uparrow_icon = PhotoImage(file='img/uparrow.png')
+        self.downarrow_icon = PhotoImage(file='img/downarrow.png')
         self.uparrow = self.uparrow_icon.subsample(3, 3)
         self.downarrow = self.downarrow_icon.subsample(3, 3)
         self.upbutton = ttk.Button(self.bottom_frame, image=self.uparrow, command=self.previous_page)
