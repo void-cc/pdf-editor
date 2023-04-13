@@ -9,7 +9,7 @@ from tkinter import PhotoImage
 import PyPDF2
 import ctypes
 
-class PDFViewer:
+class PDFEditor:
     def __init__(self, master):
         self.path = None
         self.fileisopen = None
@@ -21,8 +21,9 @@ class PDFViewer:
         self.master = master
         self.master.title("PDF Viewer")
         self.master.geometry("580x730+540+180")
-        self.master.iconbitmap(self.master, "pdf.ico")
-        
+        self.overvieuwtoggle = False
+        self.overvieuwopend = 0
+        self.master.iconbitmap("pdf.ico")
          # the bindings
         PDFSettings.bindings(self)
 
@@ -50,12 +51,16 @@ class PDFViewer:
         self.toolbar_frame.grid(row = 0, column = 0)
         self.toolbar_frame.grid_propagate(False)
         
+
         self.top_frame = ttk.Frame(self.master, width = 580, height = 650)
         self.top_frame.grid(row = 1, column = 0)
         self.top_frame.grid_propagate(False)
         self.bottom_frame = ttk.Frame(self.master, width = 580, height = 50)
         self.bottom_frame.grid(row = 2, column = 0)
         self.bottom_frame.grid_propagate(False)
+        self.overvieuw_frame_main = ttk.Frame(self.top_frame, width=580, height=650)
+        self.overvieuw_frame_main.grid(row=0, column=0)
+        self.overvieuw_frame_main.grid_propagate(False)
         self.zoomin_icon = PhotoImage(file = "zoomin2.png", width = 20, height = 20)
         self.zoomout_icon = PhotoImage(file = "zoomout2.png", width = 20, height = 20)
         self.open_icon = PhotoImage(file = "folder.png", width = 20, height = 20)
@@ -80,7 +85,7 @@ class PDFViewer:
         self.scrolly.grid(row = 0, column = 1, sticky = (N, S))
         self.scrollx = Scrollbar(self.top_frame, orient = HORIZONTAL)
         self.scrollx.grid(row = 1, column = 0, sticky = (W, E))
-        self.output = Canvas(self.top_frame, bg='gray', width = 560, height = 630)
+        self.output = Canvas(self.top_frame, bg='lightgray', width = 560, height = 630)
         self.output.configure(yscrollcommand = self.scrolly.set, xscrollcommand = self.scrollx.set)
         self.output.grid(row = 0, column = 0)
         self.scrolly.config(command = self.output.yview)
@@ -114,6 +119,11 @@ class PDFViewer:
 
     def display_page(self, scale=1):
         if 0 <= self.current_page < self.numPages: # type: ignore
+            if self.zoom_level == 0:
+                scale = 1
+            else:
+                scale = 1.2 ** self.zoom_level
+            self.miner = PDFMiner(self.path)
             self.img_file = self.miner.get_page(self.current_page, scale=scale)
             self.output.create_image(0, 0, anchor='nw', image=self.img_file)
             self.stringified_current_page = self.current_page + 1 # type: ignore
@@ -123,21 +133,30 @@ class PDFViewer:
 
     def zoom_in(self, event=None):
         if self.fileisopen:
-            self.zoom_level -= 1
+            self.zoom_level += 1
             scale = 1.2 ** self.zoom_level
-            self.display_page(scale=scale)
+            if self.overvieuwtoggle == True:
+                self.overvieuw(scale=scale, change = "yes")
+            else:
+                self.display_page(scale=scale)
 
     def zoom_out(self, event=None):
         if self.fileisopen:
-            self.zoom_level += 1
+            self.zoom_level -= 1
             scale = 1.2 ** self.zoom_level
-            self.display_page(scale=scale)
+            if self.overvieuwtoggle == True:
+                self.overvieuw(scale=scale, change = "yes")
+            else:
+                self.display_page(scale=scale)
 
     def zoom_reset(self, event=None):
         if self.fileisopen:
             self.zoom_level = 0
             scale = 1.2 ** self.zoom_level
-            self.display_page(scale=scale)
+            if self.overvieuwtoggle == True:
+                self.overvieuw(scale=scale, change = "yes")
+            else:
+                self.display_page(scale=scale)
 
     def on_mousewheel(self, event):
         # Scroll the canvas and output widget together
@@ -149,39 +168,83 @@ class PDFViewer:
 
     
     # a overvieuw that you can see 8 pages at the same time
-    def overvieuw(self):
-        self.overvieuw_window = Toplevel(self.master)
-        self.overvieuw_window.title("Overvieuw")
-        self.overvieuw_window.geometry("1200x750")
-        self.overvieuw_window.resizable(True, True)
-        self.overvieuw_window.iconbitmap(self.overvieuw_window, "pdf.ico")
-        self.overvieuw_frame = ttk.Frame(self.overvieuw_window, width = 1200, height = 800)
-        self.overvieuw_frame.grid(row = 0, column = 0)
-        self.overvieuw_frame.grid_propagate(False)
-        self.overvieuw_output = Canvas(self.overvieuw_frame, bg='white', width = 1150, height = 730)
-        self.overvieuw_output.grid(row = 0, column = 0)
-        try:
-            self.over = PDFOvervieuwer(self.path)
-            totalpages = int(self.over.get_total_pages())
-            self.img_file_overvieuw = []
+    def overvieuw(self, event=None, scale=1, pagenumber=0, change = "no"):
+        if change == "yes" and self.overvieuwtoggle == True:
+            self.overvieuwtoggle = False
 
-            for i in range(totalpages):
-                self.img_file_overvieuw.append(self.over.pages(i))
+        if self.overvieuwtoggle == False:
+            if not self.fileisopen:
+                messagebox.showerror("Error", "No file is open")
+                return
+            
+            
 
-            rangey = [0, 0, 0, 0, 0, 300, 300, 300, 300, 300, 600, 600, 600, 600, 600]
-            rangex = [0, 200, 400, 600, 800, 0, 200, 400, 600, 800, 0, 200, 400, 600, 800]
-            rangeycheckbox = [250, 250, 250, 250, 250, 550, 550, 550, 550, 550, 850, 850, 850, 850, 850]
-            rangexcheckbox = [50, 250, 450, 650, 850, 50, 250, 450, 650, 850, 50, 250, 450, 650, 850]
+            if self.overvieuwopend != 0:
+                self.checkbox.destroy()
 
-            for i in range(totalpages if totalpages < 15 else 15):
-                self.overvieuw_output.create_image(rangex[i], rangey[i], image = self.img_file_overvieuw[i], anchor = NW)
-                #ttk checkbutton per page already checked
-                self.checkbox = ttk.Checkbutton(self.overvieuw_output, text = "page " + str(i + 1), onvalue = 1, offvalue = 0,  )
-                self.checkbox.place(x = rangexcheckbox[i], y = rangeycheckbox[i])
-        except:
-            self.overvieuw_window.destroy()
-            messagebox.showerror("Error", "No file is open")
-    
+            width = int(self.top_frame.winfo_width())
+            height = int(self.top_frame.winfo_height())
+
+            self.output.delete('all')
+            self.output = Canvas(self.top_frame, bg='lightgray', width=width, height=height)
+            self.output.grid(row=0, column=0)
+
+            try:
+                self.over = PDFOvervieuwer(self.path, scale=scale)
+                totalpages = int(self.over.get_total_pages())
+                self.img_file_overvieuw = []
+
+                for i in range(totalpages):
+                    self.img_file_overvieuw.append(self.over.pages(i))
+
+                distance = (200 * scale)
+                height_distance = (300 * scale)
+                checkbox_distance = (250 * scale)
+                checkboxx_distance = (50 * scale)
+                total_images_per_row = int(width / distance) 
+                total_images_per_column = int(height / height_distance)
+                rangey = []
+                rangex = []
+                rangexcheckbox = []
+                rangeycheckbox = []
+                range_for_output = min(totalpages, total_images_per_row * total_images_per_column)
+
+                for j in range(total_images_per_column):
+                    for i in range(total_images_per_row):
+                        rangey.append(j * height_distance)
+                        rangex.append(i * distance)
+                        rangeycheckbox.append(j * height_distance + checkbox_distance)
+                        rangexcheckbox.append(i * distance + checkboxx_distance)
+
+
+
+                
+                    
+
+                
+                for i in range(range_for_output if range_for_output < 15 else 15):
+                    self.output.create_image(rangex[i], rangey[i], image=self.img_file_overvieuw[i], anchor=NW)
+                    self.checkbox = ttk.Checkbutton(self.output, text="page " + str(i + 1), onvalue=1, offvalue=0,)
+                    self.checkbox.place(x=rangexcheckbox[i], y=rangeycheckbox[i])
+                
+            except Exception as e:
+                print(e)
+            
+            self.overvieuwtoggle = True
+            self.overvieuwopend += 1
+        else:
+            self.output.destroy()
+            self.output = Canvas(self.top_frame, bg='lightgray', width=1150, height=730)
+            self.output.grid(row=0, column=0)
+            self.output.bind("<MouseWheel>", self.on_mousewheel)
+            self.output.bind("<Button-4>", self.zoom_in)
+            self.output.bind("<Button-5>", self.zoom_out)
+            self.output.bind("<Button-3>", self.zoom_reset)
+            self.output.bind("<Button-1>", self.zoom_reset)
+            self.output.bind("<B1-Motion>", self.ver_on_mousewheel)
+            self.display_page()
+            self.overvieuwtoggle = False
+
     # a function to merge pdf files
     def merge_pdf(self):
         self.merge_window = Toplevel(self.master)
@@ -197,6 +260,12 @@ class PDFViewer:
 
     #a function to split pdf files
     def split_pdf(self):
+        #if files is not open give error
+        if not self.fileisopen:
+            messagebox.showerror("Error", "No file is open")
+            return
+        
+
         self.split_window = Toplevel(self.master)
         self.split_window.title("Split PDF")
         self.split_window.geometry("400x200")
@@ -223,9 +292,7 @@ class PDFViewer:
 
     def resize(self, event=None):
         PDFSettings.resize(self, event)
-
     
-
     def open_file(self, event = None, file = None):
         PDFSettings.open_file(self, event, file)
     
@@ -239,7 +306,7 @@ class PDFViewer:
         PDFSettings.save_file(self)
     
 
-class PDFSettings(PDFViewer):
+class PDFSettings(PDFEditor):
     def bindings(self):
         self.master.bind('<Control-Shift-O>', self.open_file)
         self.master.bind('<Control-o>', self.open_file)
@@ -336,6 +403,7 @@ class PDFSettings(PDFViewer):
         self.top_frame.config(width=w, height=h-100)
         self.output.config(width=w-20, height=h-150) 
         self.scrollx.config(width=w-40)
+        self.scrolly.config(width=w-40)
 
         # update the size of the toolbar
         self.toolbar_frame.config(width=w, height=50)
@@ -348,5 +416,5 @@ class PDFSettings(PDFViewer):
 
 ctypes.windll.shcore.SetProcessDpiAwareness(1)    
 root = Tk()
-app = PDFViewer(root)
+app = PDFEditor(root)
 root.mainloop()
