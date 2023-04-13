@@ -6,7 +6,7 @@ This is a work in progress pdf editor. For now it can let you:
 - merge pdf's
 
 Aditional futures:
-- give you a overvieuw 9 pages at a time (experimental)
+- it can give you a overvieuw of your pages in the pdf (with zoom in and zoom out funtionality)
 - let you zoom in on a page
 - let you zoom out on a page
 - Has a easy gui toolbar at the top
