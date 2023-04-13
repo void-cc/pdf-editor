@@ -41,7 +41,7 @@ class PDFMiner:
         # checking if zoom is True
         if self.zoom:
             # creating a Matrix whose zoom factor is self.zoom
-            mat = fitz.Matrix((self.zoom)/ scale, (self.zoom)/ scale)
+            mat = fitz.Matrix((self.zoom)* scale, (self.zoom)* scale)
             # gets the image of the page
             pix = page.get_pixmap(matrix=mat)
         # returns the image of the page  
@@ -76,13 +76,14 @@ class PDFMiner:
         # saving the file
         self.pdf.save(self.filepath, garbage=4, deflate=True, clean=True)
 
-class PDFOvervieuwer:
-    def __init__(self, filepath):
+class PDFOvervieuwer(PDFMiner):
+    def __init__(self, filepath, scale=1):
         self.filepath = filepath
         self.pdf = fitz.open(self.filepath)
         self.first_page = self.pdf.load_page(0)
         self.width, self.height = self.first_page.rect.width, self.first_page.rect.height
         zoomdict = {800: 0.3, 700: 0.2, 600: 0.3, 500: 0.3}
+        zoomdict = zoomdict if scale == 1 else {k: v * scale for k, v in zoomdict.items()}
         width = int(math.floor(self.width / 100.0) * 100)
         self.zoom = zoomdict[width]
 
@@ -101,9 +102,7 @@ class PDFOvervieuwer:
         return PhotoImage(data=imgdata)
     
     def get_metadata(self):
-        metadata = self.pdf.metadata
-        numPages = self.pdf.page_count
-        return metadata, numPages
+        return super().get_metadata()
     
     def get_total_pages(self):
         return self.pdf.page_count
