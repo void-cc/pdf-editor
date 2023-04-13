@@ -45,7 +45,7 @@ class PDFEditor:
         self.optionsmenu.add_command(label = "split", command = self.split_pdf)
         #self.optionsmenu.add_command(label = "rotate", command = self.rotate_pdf)
         self.optionsmenu.add_command(label = "overvieuw", command = self.overvieuw)        
-
+            
         # the frames
         self.toolbar_frame = ttk.Frame(self.master, width = 580, height = 30)
         self.toolbar_frame.grid(row = 0, column = 0)
