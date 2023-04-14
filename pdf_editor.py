@@ -35,7 +35,7 @@ class PDFEditor:
         self.filemenu.add_command(label="Open File", accelerator='Ctrl+O' , command=self.open_file)
         self.filemenu.add_command(label="Exit", command=self.master.destroy)
         self.filemenu.add_command(label = "Save", command = self.save_file)
-        self.filemenu.add_command(label = "Save As")
+        self.filemenu.add_command(label = "Save As", command = self.save_file_as_window)
         self.filemenu.add_command(label = "zoom in", accelerator = "Ctrl + +", command = self.zoom_in)
         self.filemenu.add_command(label = "zoom out", accelerator = "Ctrl + -", command = self.zoom_out)
         self.filemenu.add_command(label = "Close")
@@ -45,7 +45,7 @@ class PDFEditor:
         self.optionsmenu.add_command(label = "split", command = self.split_pdf)
         #self.optionsmenu.add_command(label = "rotate", command = self.rotate_pdf)
         self.optionsmenu.add_command(label = "overvieuw", command = self.overvieuw)        
-            
+
         # the frames
         self.toolbar_frame = ttk.Frame(self.master, width = 580, height = 30)
         self.toolbar_frame.grid(row = 0, column = 0)
@@ -176,19 +176,10 @@ class PDFEditor:
             if not self.fileisopen:
                 messagebox.showerror("Error", "No file is open")
                 return
-            
-            
-
             if self.overvieuwopend != 0:
                 self.checkbox.destroy()
-
             width = int(self.top_frame.winfo_width())
             height = int(self.top_frame.winfo_height())
-
-            self.output.delete('all')
-            self.output = Canvas(self.top_frame, bg='lightgray', width=width, height=height)
-            self.output.grid(row=0, column=0)
-
             try:
                 self.over = PDFOvervieuwer(self.path, scale=scale)
                 totalpages = int(self.over.get_total_pages())
@@ -220,7 +211,9 @@ class PDFEditor:
 
                 
                     
-
+                self.output.delete('all')
+                self.output = Canvas(self.top_frame, bg='lightgray', width=width, height=height)
+                self.output.grid(row=0, column=0)
                 
                 for i in range(range_for_output if range_for_output < 15 else 15):
                     self.output.create_image(rangex[i], rangey[i], image=self.img_file_overvieuw[i], anchor=NW)
@@ -290,6 +283,19 @@ class PDFEditor:
         self.split_upper = ttk.Button(self.split_window, text = "Split", command = self.split)
         self.split_upper.grid(row = 6, column = 0, padx = 5, pady = 5)
 
+    def save_file_as_window(self):
+        self.save_window = Toplevel(self.master)
+        self.save_window.title("Save file as")
+        self.save_window.geometry("400x200")
+        self.save_window.resizable(False, False)
+        self.save_label = ttk.Label(self.save_window, text = "Enter the name of the file")
+        self.save_label.grid(row = 0, column = 0, padx = 5, pady = 5)
+        self.save_entry = ttk.Entry(self.save_window)
+        self.save_entry.grid(row = 1, column = 0, padx = 5, pady = 5)
+        self.save_button = ttk.Button(self.save_window, text = "Save", command = self.save_file_as)
+        self.save_button.grid(row = 2, column = 0, padx = 5, pady = 5)
+
+
     def resize(self, event=None):
         PDFSettings.resize(self, event)
     
@@ -304,6 +310,9 @@ class PDFEditor:
 
     def save_file(self):
         PDFSettings.save_file(self)
+
+    def save_file_as(self):
+        PDFSettings.save_file_as(self)
     
 
 class PDFSettings(PDFEditor):
@@ -394,6 +403,17 @@ class PDFSettings(PDFEditor):
             self.name = self.miner.get_name()
             self.miner.save_file(self.name)
             messagebox.showinfo("Success", "The file has been saved successfully")
+
+    def save_file_as(self):
+        self.new_doc_name = self.save_entry.get()
+        if self.new_doc_name == "":
+            messagebox.showerror("Error", "Please enter a name for the file")
+        else:
+            self.miner.save_as(self.new_doc_name)
+            messagebox.showinfo("Success", "The file has been saved successfully")
+            self.save_window.destroy()
+            self.open_file(filepath=(self.new_doc_name + ".pdf"))
+            
 
     def resize(self, event=None):
         w = self.master.winfo_width()

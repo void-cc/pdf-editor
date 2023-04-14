@@ -76,6 +76,12 @@ class PDFMiner:
         # saving the file
         self.pdf.save(self.filepath, garbage=4, deflate=True, clean=True)
 
+    def save_as(self, name):
+        # saving the file
+        if name[-4:] != '.pdf':
+            name += '.pdf'
+        self.pdf.save(name, garbage=4, deflate=True, clean=True)
+
 class PDFOvervieuwer(PDFMiner):
     def __init__(self, filepath, scale=1):
         self.filepath = filepath
