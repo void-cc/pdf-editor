@@ -4,6 +4,8 @@ import math
 import fitz
 # importing PhotoImage from tkinter
 from tkinter import PhotoImage
+# importing filedialog from tkinter
+from tkinter import filedialog
 
 
 
@@ -40,44 +42,33 @@ class PDFMiner:
         page = self.pdf.load_page(page_num)
         # checking if zoom is True
         if self.zoom:
-            # creating a Matrix whose zoom factor is self.zoom
             mat = fitz.Matrix((self.zoom)* scale, (self.zoom)* scale)
-            # gets the image of the page
             pix = page.get_pixmap(matrix=mat)
-        # returns the image of the page  
         else:
             pix = page.get_pixmap()
-        # a variable that holds a transparent image
         px1 = fitz.Pixmap(pix, 0) if pix.alpha else pix
-        # converting the image to bytes
         imgdata = px1.tobytes("ppm")
         scale = 0.5
-        # returning the image d aata
         return PhotoImage(data=imgdata)
     
     
     # function to get text from the current page
     def get_text(self, page_num):
-        # loading the page
         page = self.pdf.load_page(page_num)
-        # getting text from the loaded page
         text = page.getText('text')
-        # returning text
         return text
     
     # function to get the text from the whole document
     def get_name(self):
-        # getting the metadata
         filename = self.get_metadata()[0]['title']
         
         return filename
     
     def save_file(self, name):
-        # saving the file
         self.pdf.save(self.filepath, garbage=4, deflate=True, clean=True)
 
     def save_as(self, name):
-        # saving the file
+
         if name[-4:] != '.pdf':
             name += '.pdf'
         self.pdf.save(name, garbage=4, deflate=True, clean=True)

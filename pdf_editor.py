@@ -284,16 +284,9 @@ class PDFEditor:
         self.split_upper.grid(row = 6, column = 0, padx = 5, pady = 5)
 
     def save_file_as_window(self):
-        self.save_window = Toplevel(self.master)
-        self.save_window.title("Save file as")
-        self.save_window.geometry("400x200")
-        self.save_window.resizable(False, False)
-        self.save_label = ttk.Label(self.save_window, text = "Enter the name of the file")
-        self.save_label.grid(row = 0, column = 0, padx = 5, pady = 5)
-        self.save_entry = ttk.Entry(self.save_window)
-        self.save_entry.grid(row = 1, column = 0, padx = 5, pady = 5)
-        self.save_button = ttk.Button(self.save_window, text = "Save", command = self.save_file_as)
-        self.save_button.grid(row = 2, column = 0, padx = 5, pady = 5)
+        filename = fd.asksaveasfilename()
+        if filename:
+            self.save_file_as(filename)
 
 
     def resize(self, event=None):
@@ -311,8 +304,11 @@ class PDFEditor:
     def save_file(self):
         PDFSettings.save_file(self)
 
-    def save_file_as(self):
-        PDFSettings.save_file_as(self)
+    def save_file_as(self, new_doc_name):
+        self.miner.save_as(new_doc_name)
+        messagebox.showinfo("Success", "The file has been saved successfully")
+        self.save_window.destroy()
+        self.open_file(filepath=(new_doc_name + ".pdf"))
     
 
 class PDFSettings(PDFEditor):
@@ -404,15 +400,7 @@ class PDFSettings(PDFEditor):
             self.miner.save_file(self.name)
             messagebox.showinfo("Success", "The file has been saved successfully")
 
-    def save_file_as(self):
-        self.new_doc_name = self.save_entry.get()
-        if self.new_doc_name == "":
-            messagebox.showerror("Error", "Please enter a name for the file")
-        else:
-            self.miner.save_as(self.new_doc_name)
-            messagebox.showinfo("Success", "The file has been saved successfully")
-            self.save_window.destroy()
-            self.open_file(filepath=(self.new_doc_name + ".pdf"))
+    
             
 
     def resize(self, event=None):
