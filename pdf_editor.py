@@ -22,6 +22,7 @@ class PDFEditor:
         self.master.title("PDF Viewer")
         self.master.geometry("580x730+540+180")
         self.overvieuwtoggle = False
+        self.mergepdftoggle = False
         self.overvieuwopend = 0
         self.master.iconbitmap("img/pdf.ico")
          # the bindings
@@ -68,14 +69,14 @@ class PDFEditor:
         self.merge_icon = PhotoImage(file = "img/merge.png", width = 20, height = 20)
         self.split_icon = PhotoImage(file = "img/split.png", width = 20, height = 20)
 
-        self.zoomin_button = ttk.Button(self.toolbar_frame, image = self.zoomin_icon, command = self.zoom_in)
-        self.zoomin_button.grid(row = 0, column = 2)
-        self.zoomout_button = ttk.Button(self.toolbar_frame, image = self.zoomout_icon, command = self.zoom_out)
-        self.zoomout_button.grid(row = 0, column = 3)   
         self.open_button = ttk.Button(self.toolbar_frame, image = self.open_icon, command = self.open_file)
         self.open_button.grid(row = 0, column = 0)
         self.save_button = ttk.Button(self.toolbar_frame, image = self.save_icon, command = self.save_file)
         self.save_button.grid(row = 0, column = 1)
+        self.zoomin_button = ttk.Button(self.toolbar_frame, image = self.zoomin_icon, command = self.zoom_in)
+        self.zoomin_button.grid(row = 0, column = 2)
+        self.zoomout_button = ttk.Button(self.toolbar_frame, image = self.zoomout_icon, command = self.zoom_out)
+        self.zoomout_button.grid(row = 0, column = 3)   
         self.merge_button = ttk.Button(self.toolbar_frame, image = self.merge_icon, command = self.merge_pdf)
         self.merge_button.grid(row = 0, column = 4)
         self.split_button = ttk.Button(self.toolbar_frame, image = self.split_icon, command = self.split_pdf)
@@ -240,16 +241,33 @@ class PDFEditor:
 
     # a function to merge pdf files
     def merge_pdf(self):
-        self.merge_window = Toplevel(self.master)
-        self.merge_window.title("Merge PDF")
-        self.merge_window.geometry("400x200")
-        self.merge_window.resizable(False, False)
-        self.merge_label = ttk.Label(self.merge_window, text = "Enter the name of the merged file")
-        self.merge_label.grid(row = 0, column = 0, padx = 5, pady = 5)
-        self.merge_entry = ttk.Entry(self.merge_window)
-        self.merge_entry.grid(row = 1, column = 0, padx = 5, pady = 5)
-        self.merge_button = ttk.Button(self.merge_window, text = "Merge", command = self.merge)
-        self.merge_button.grid(row = 2, column = 0, padx = 5, pady = 5)         
+        w = self.master.winfo_width()
+        h = self.master.winfo_height()
+        if self.fileisopen == False:
+            messagebox.showerror("Error", "No file is open")
+            return
+        if self.mergepdftoggle == False:
+            self.mergepdftoggle = True
+            self.merge_window = ttk.Frame(self.top_frame, width = 80, height = 650)
+            self.top_frame.config(width = w, height = h-100)
+            self.output.config(width = w-100, height = h-150)
+            self.merge_window.grid(row = 0, column = 0)
+            self.output.grid(row = 0, column = 1, padx = 5, pady = 5)
+            
+            
+            self.merge_label = ttk.Label(self.merge_window, text = "Enter the name of the merged file")
+            self.merge_label.grid(row = 0, column = 0, padx = 5, pady = 5)
+            self.merge_entry = ttk.Entry(self.merge_window)
+            self.merge_entry.grid(row = 1, column = 0, padx = 5, pady = 5)
+            self.merge_button = ttk.Button(self.merge_window, text = "Merge", command = self.merge)
+            self.merge_button.grid(row = 2, column = 0, padx = 5, pady = 5)    
+        else:
+            self.merge_window.destroy()
+            self.mergepdftoggle = False
+            self.top_frame.config(width = 1150, height = 730)
+            self.output.config(width = 1150, height = 730)
+            self.output.grid(row = 0, column = 0)
+            self.display_page()
 
     #a function to split pdf files
     def split_pdf(self):
@@ -408,10 +426,16 @@ class PDFSettings(PDFEditor):
         h = self.master.winfo_height()
 
         # update the size of the canvas and scrollbar
-        self.top_frame.config(width=w, height=h-100)
-        self.output.config(width=w-20, height=h-150) 
-        self.scrollx.config(width=w-40)
-        self.scrolly.config(width=w-40)
+        if self.mergepdftoggle:
+            self.top_frame.config(width=w, height=h-100)
+            self.output.config(width=w-100, height=h-200)
+            self.scrollx.config(width=w-40)
+            self.scrolly.config(width=w-40)
+        else:
+            self.top_frame.config(width=w, height=h-100)
+            self.output.config(width=w-20, height=h-150) 
+            self.scrollx.config(width=w-40)
+            self.scrolly.config(width=w-40)
 
         # update the size of the toolbar
         self.toolbar_frame.config(width=w, height=50)
